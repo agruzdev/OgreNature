@@ -38,6 +38,7 @@ This source file is part of the
 
 #include "Shaders.h"
 
+#include "Landscape/Ground.h"
 
 const Ogre::Real MinimalOgre::ROTATION_VELOCITY = static_cast<Ogre::Real>(100.0);
 const Ogre::Real MinimalOgre::ZOOM_VELOCITY = static_cast<Ogre::Real>(1000.0);
@@ -557,7 +558,16 @@ void MinimalOgre::CreateMaterials()
 
 void MinimalOgre::SetupScene()
 {
-	mOgreHead = mSceneMgr->createEntity("Head", "ogrehead.mesh");
+	//mOgreHead = mSceneMgr->createEntity("Head", "ogrehead.mesh");
+
+    Ogre::Image heightMapImage;
+    heightMapImage.load("terrain.jpg", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+    Ogre::TexturePtr heightMapTexture = Ogre::TextureManager::getSingleton().loadImage("Texture/Terrain",
+        Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, heightMapImage);
+
+    auto ground = std::make_unique<Ground>("Ground", mSceneMgr);
+    ground->LoadFromHeightMap(heightMapTexture.get());
+    mOgreHead = ground->GetEntity();
 
 	Ogre::SceneNode* headNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
 	headNode->attachObject(mOgreHead);
