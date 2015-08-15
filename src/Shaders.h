@@ -1,0 +1,87 @@
+
+static const char Shader_GL_Copy_V[] = ""
+"#version 120                                                              \n"
+"                                                                          \n"
+"                                                                          \n"
+"void main()                                                               \n"
+"{                                                                         \n"
+"    gl_TexCoord[0] = gl_MultiTexCoord0;                                   \n"
+"    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;               \n"
+"}                                                                         \n"
+"";
+
+
+
+static const char Shader_GL_Copy_F[] = ""
+"#version 120                                                   \n"
+"                                                               \n"
+"uniform sampler2D texture;                                     \n"
+"                                                               \n"
+"void main()                                                    \n"
+"{                                                              \n"
+"    gl_FragColor = texture2D(texture, gl_TexCoord[0].st);      \n"
+"}                                                              \n"
+"";
+
+static const char Shader_GL3_Copy_V[] = ""
+"#version 330                                                              \n"
+"                                                                          \n"
+"uniform mat4 modelviewproj;                                               \n"
+"                                                                          \n"
+"attribute vec3 vertex;                                                         \n"
+//"in vec2 uv0;                                                              \n"
+"                                                                          \n"
+//"varying  vec2 texcoord;                                                        \n"
+"                                                                          \n"
+"void main()                                                               \n"
+"{                                                                         \n"
+//"    texcoord = uv0;                                                       \n"
+"    gl_Position = modelviewproj * vec4(vertex.xyz, 1.0);                    \n"
+"}                                                                         \n"
+"";
+
+static const char Shader_GL3_Copy_F[] = ""
+"#version 330                                                   \n"
+"                                                               \n"
+//"uniform sampler2D texture;                                     \n"
+"                                                               \n"
+//"varying  vec2 texcoord;                                              \n"
+"out vec4 fragcolor;                                            \n"
+"                                                               \n"
+"void main()                                                    \n"
+"{                                                              \n"
+"    fragcolor = vec4(1.0, 0.0, 0.0, 1.0);//texture2D(texture, texcoord);                  \n"
+"}                                                              \n"
+"";
+
+
+//http://ube43.wix.com/directxers/apps/blog/directx-9-tutorial-2-shader
+static const char Shader_DX_Copy_V[] = ""
+"                                                                           \n"
+//"cbuffer BufferPerFrame                                                     \n"
+//"{                                                                          \n"
+"   float4x4 ModelViewProj;                                                 \n"
+//"};                                                                         \n"
+"                                                                           \n"
+"struct VS_OUTPUT                                                           \n"
+"{                                                                          \n"
+"    float4 PositionOut : POSITION;                                         \n"
+"};                                                                         \n"
+"VS_OUTPUT VS(float4 PositionIn : POSITION)                                 \n"
+"{                                                                          \n"
+"    VS_OUTPUT VertexOut;                                                   \n"
+"    VertexOut.PositionOut = mul(PositionIn, ModelViewProj);                \n"
+"    return VertexOut;                                                      \n"
+"}                                                                          \n"
+"                                                                           \n"
+"";
+
+static const char Shader_DX_Copy_F[] = ""
+"                                                                           \n"
+"                                                                           \n"
+"float4 PS(float4 Color : COLOR) : COLOR                                    \n"
+"{                                                                          \n"
+"    return float4(1.0, 0.0, 0.0, 1.0);                                     \n"
+"}                                                                          \n"
+"                                                                           \n"
+"";
