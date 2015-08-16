@@ -54,7 +54,7 @@ MinimalOgre::MinimalOgre(void)
     mResourcesCfg(""),
     mPluginsCfg(""),
     mTrayMgr(0),
-    //mCameraMan(0),
+    mCameraMan(0),
     //mDetailsPanel(0),
     //mCursorWasVisible(false),
     mShutDown(false),
@@ -68,7 +68,7 @@ MinimalOgre::MinimalOgre(void)
 MinimalOgre::~MinimalOgre(void)
 {
     if (mTrayMgr) delete mTrayMgr;
-    //if (mCameraMan) delete mCameraMan;
+    if (mCameraMan) delete mCameraMan;
 	if (mOverlaySystem) delete mOverlaySystem;
  
     //Remove ourself as a Window listener
@@ -146,7 +146,7 @@ bool MinimalOgre::go(void)
     mCamera->lookAt(Ogre::Vector3(0,0,-300));
     mCamera->setNearClipDistance(5);
  
-    //mCameraMan = new OgreBites::SdkCameraMan(mCamera);   // create a default camera controller
+    mCameraMan = new OgreBites::SdkCameraMan(mCamera);   // create a default camera controller
 //-------------------------------------------------------------------------------------
     // create viewports
     // Create one viewport, entire window
@@ -214,7 +214,8 @@ void MinimalOgre::SetupEffectsGui()
     mTrayMgr = new OgreBites::SdkTrayManager("InterfaceName", mWindow, mInputContext, this);
     mTrayMgr->showFrameStats(OgreBites::TL_BOTTOMLEFT);
     mTrayMgr->showLogo(OgreBites::TL_BOTTOMRIGHT);
-    mTrayMgr->showCursor();
+    //mTrayMgr->showCursor();
+    mTrayMgr->hideCursor();
     /*
     // create a params panel for displaying sample details
     Ogre::StringVector items;
@@ -255,10 +256,11 @@ bool MinimalOgre::frameRenderingQueued(const Ogre::FrameEvent& evt)
     mMouse->capture();
  
     mTrayMgr->frameRenderingQueued(evt);
-    /*
+    
     if (!mTrayMgr->isDialogVisible())
     {
-        //mCameraMan->frameRenderingQueued(evt);   // if dialog isn't up, then update the camera
+        mCameraMan->frameRenderingQueued(evt);   // if dialog isn't up, then update the camera
+        /*
         if (mDetailsPanel->isVisible())   // if details panel is visible, then update its contents
         {
             mDetailsPanel->setParamValue(0, Ogre::StringConverter::toString(mCamera->getDerivedPosition().x));
@@ -268,9 +270,9 @@ bool MinimalOgre::frameRenderingQueued(const Ogre::FrameEvent& evt)
             mDetailsPanel->setParamValue(5, Ogre::StringConverter::toString(mCamera->getDerivedOrientation().x));
             mDetailsPanel->setParamValue(6, Ogre::StringConverter::toString(mCamera->getDerivedOrientation().y));
             mDetailsPanel->setParamValue(7, Ogre::StringConverter::toString(mCamera->getDerivedOrientation().z));
-        }
+        }*/
     }
-    */
+    
  
     return true;
 }
@@ -332,7 +334,7 @@ bool MinimalOgre::keyPressed( const OIS::KeyEvent &arg )
     }
     else if (arg.key == OIS::KC_R)   // cycle polygon rendering mode
     {
-        /*
+        
         Ogre::String newVal;
         Ogre::PolygonMode pm;
  
@@ -353,7 +355,7 @@ bool MinimalOgre::keyPressed( const OIS::KeyEvent &arg )
  
         mCamera->setPolygonMode(pm);
         //mDetailsPanel->setParamValue(10, newVal);
-        */
+        
     }
     else if(arg.key == OIS::KC_F5)   // refresh all textures
     {
@@ -368,13 +370,13 @@ bool MinimalOgre::keyPressed( const OIS::KeyEvent &arg )
         mShutDown = true;
     }
  
-    //mCameraMan->injectKeyDown(arg);
+    mCameraMan->injectKeyDown(arg);
     return true;
 }
  
 bool MinimalOgre::keyReleased( const OIS::KeyEvent &arg )
 {
-    //mCameraMan->injectKeyUp(arg);
+    mCameraMan->injectKeyUp(arg);
     return true;
 }
  
@@ -385,6 +387,8 @@ bool MinimalOgre::mouseMoved( const OIS::MouseEvent &evt )
 #else
     if (mTrayMgr->injectPointerMove(evt)) return true;
 #endif
+    mCameraMan->injectMouseMove(evt);
+#if 0
     Ogre::SceneNode* headNode = mOgreHead->getParentSceneNode();
     if (nullptr != headNode)
     {
@@ -406,7 +410,7 @@ bool MinimalOgre::mouseMoved( const OIS::MouseEvent &evt )
             headNode->scale(scaleFactor * Ogre::Vector3::UNIT_SCALE);
         }
     }
-
+#endif
     return true;
 }
  
@@ -558,6 +562,8 @@ void MinimalOgre::CreateMaterials()
 
 void MinimalOgre::SetupScene()
 {
+    mCamera->getViewport()->setBackgroundColour(Ogre::ColourValue::White * 0.5f);
+
 	//mOgreHead = mSceneMgr->createEntity("Head", "ogrehead.mesh");
 
     Ogre::Image heightMapImage;
@@ -573,6 +579,10 @@ void MinimalOgre::SetupScene()
 	headNode->attachObject(mOgreHead);
     headNode->setScale(0.27f * Ogre::Vector3::UNIT_SCALE);
 
+    Ogre::Quaternion rot;
+    rot.FromAngleAxis(Ogre::Radian(Ogre::Degree(-90)), Ogre::Vector3::UNIT_X);
+    headNode->setOrientation(rot);
+
 	// Set ambient light
 	mSceneMgr->setAmbientLight(Ogre::ColourValue(0.5, 0.5, 0.5));
 
@@ -580,6 +590,10 @@ void MinimalOgre::SetupScene()
 	Ogre::Light* l = mSceneMgr->createLight("MainLight");
 	l->setPosition(20, 80, 50);
 
+    mCamera->setPosition(Ogre::Vector3(0, 100, 80));
+    mCamera->lookAt(Ogre::Vector3(0, 0, 0));
+
+    /*
 	Ogre::Plane bgPlane = Ogre::Plane(Ogre::Vector3(0.0f, 0.0f, 1.0f), Ogre::Vector3(0.0f, 0.0f, -100.0f));
 	Ogre::vector<Ogre::Vector4>::type intersection;
 	mCamera->forwardIntersect(bgPlane, &intersection);
@@ -593,6 +607,7 @@ void MinimalOgre::SetupScene()
     mBgTexturePlane->setMaterialName("Material/BG");
 
 	mSceneMgr->getRootSceneNode()->createChildSceneNode()->attachObject(mBgTexturePlane);
+    */
 }
 
 void MinimalOgre::SetupPostEffects()
