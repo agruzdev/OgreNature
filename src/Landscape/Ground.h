@@ -15,6 +15,7 @@
 #include <string>
 #include <OgreCommon.h>
 #include <OgreTexture.h>
+#include <OgreMesh.h>
 
 namespace Ogre
 {
@@ -22,20 +23,31 @@ namespace Ogre
     class Entity;
     class Texture;
     class ManualObject;
+    class SceneNode;
 }
 
 class Ground
 {
     static const size_t GROUND_SIZE;
+    static const size_t REGION_SIZE;
+    static const size_t REGIONS_NUMBER;
     //-------------------------------------------------------
 
     std::string mName;
     Ogre::SceneManager* mSceneManager;
+    //Ogre::ManualObject* mObject;
     Ogre::TexturePtr mTexture;
-    Ogre::Entity* mEntity;
+    std::vector<Ogre::Entity*> mEntities;
+    Ogre::SceneNode* mRootNode;
     //-------------------------------------------------------
 
-    void CreateRegion(Ogre::ManualObject* obj, const Ogre::Texture* hmap, Ogre::Rect roi);
+    /**
+     *	Create ground submesh for the given area of the height map
+     *  @param pixels - are of the height map
+     *  @param offset - top left vertex position
+     *  @param steps - horizontal and vertical steps between vertex
+     */
+    Ogre::MeshPtr CreateRegion(size_t id, Ogre::PixelBox& pixels, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps);
 
     Ground(const Ground&) = delete;
     Ground& operator=(const Ground&) = delete;
@@ -44,12 +56,18 @@ public:
     Ground(const std::string & name, Ogre::SceneManager* sceneManager);
     ~Ground();
 
-    void LoadFromHeightMap(const Ogre::Texture* hmap);
+    void LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* parentNode);
 
-    Ogre::Entity* GetEntity()
+    //Ogre::Entity* GetEntity()
+    //{
+    //    return mEntity;
+    //}
+
+    Ogre::SceneNode* GetNode()
     {
-        return mEntity;
+        return mRootNode;
     }
+
 };
 
 

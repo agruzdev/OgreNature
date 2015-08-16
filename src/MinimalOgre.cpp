@@ -572,11 +572,14 @@ void MinimalOgre::SetupScene()
         Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, heightMapImage);
 
     auto ground = std::make_unique<Ground>("Ground", mSceneMgr);
-    ground->LoadFromHeightMap(heightMapTexture.get());
-    mOgreHead = ground->GetEntity();
+    ground->LoadFromHeightMap(heightMapTexture.get(), mSceneMgr->getRootSceneNode());
+    //mOgreHead = ground->GetEntity();
 
-	Ogre::SceneNode* headNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
-	headNode->attachObject(mOgreHead);
+	//Ogre::SceneNode* headNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+	//headNode->attachObject(mOgreHead);
+    //headNode->setScale(0.27f * Ogre::Vector3::UNIT_SCALE);
+
+    Ogre::SceneNode* headNode = ground->GetNode();
     headNode->setScale(0.27f * Ogre::Vector3::UNIT_SCALE);
 
     Ogre::Quaternion rot;

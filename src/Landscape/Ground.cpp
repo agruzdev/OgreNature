@@ -21,6 +21,8 @@
 
 
 const size_t Ground::GROUND_SIZE = 512;
+const size_t Ground::REGION_SIZE = 64;
+const size_t Ground::REGIONS_NUMBER = 10;
 //-------------------------------------------------------
 Ground::Ground(const std::string & name, Ogre::SceneManager* sceneManager):
     mName(name), mSceneManager(sceneManager)
@@ -33,7 +35,53 @@ Ground::~Ground()
 
 }
 //-------------------------------------------------------
-void Ground::LoadFromHeightMap(const Ogre::Texture* hmap)
+Ogre::MeshPtr Ground::CreateRegion(size_t id, Ogre::PixelBox& pixels, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps)
+{
+    assert(mSceneManager != nullptr);
+
+    Ogre::ManualObject* object = mSceneManager->createManualObject();
+    object->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_TRIANGLE_LIST);
+    {
+        size_t lastIdx = 0;
+        for (size_t y = 0; y < REGION_SIZE; ++y)
+        {
+            size_t texY = static_cast<size_t>(static_cast<float>(y) / REGION_SIZE * (pixels.getHeight() - 1));
+            size_t texYn = static_cast<size_t>(static_cast<float>(y + 1) / REGION_SIZE * (pixels.getHeight() - 1));
+
+            //Flip texture vertically
+            texY  = pixels.getHeight() - 1 - texY;
+            texYn = pixels.getHeight() - 1 - texYn;
+
+            for (size_t x = 0; x < REGION_SIZE; ++x)
+            {
+                size_t texX = static_cast<size_t>(static_cast<float>(x) / REGION_SIZE * (pixels.getWidth() - 1));
+                size_t texXn = static_cast<size_t>(static_cast<float>(x + 1) / REGION_SIZE * (pixels.getWidth() - 1));
+
+                float h00 = pixels.getColourAt(texX, texY, 0)[0];
+                float h10 = pixels.getColourAt(texXn, texY, 0)[0];
+                float h01 = pixels.getColourAt(texX, texYn, 0)[0];
+                float h11 = pixels.getColourAt(texXn, texYn, 0)[0];
+
+                object->position(x * steps[0] + offset[0], y * steps[1] + offset[1], h00 * steps[2]);
+                object->colour(h00, h00, h00);
+                object->position((x + 1) * steps[0] + offset[0], y * steps[1] + offset[1], h10 * steps[2]);
+                object->colour(h10, h10, h10);
+                object->position(x * steps[0] + offset[0], (y + 1) * steps[1] + offset[1], h01 * steps[2]);
+                object->colour(h01, h01, h01);
+                object->position((x + 1) * steps[0] + offset[0], (y + 1) * steps[1] + offset[1], h11 * steps[2]);
+                object->colour(h11, h11, h11);
+
+                object->triangle(lastIdx + 1, lastIdx + 2, lastIdx);
+                object->triangle(lastIdx + 3, lastIdx + 2, lastIdx + 1);
+                lastIdx += 4;
+            }
+        }
+    }
+    object->end();
+    return object->convertToMesh("Mesh/Ground/" + mName + "/" + std::to_string(id));
+}
+//-------------------------------------------------------
+void Ground::LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* parentNode)
 {
     mTexture = Ogre::TextureManager::getSingleton().createManual(
         "Texture/Ground/" + mName, 
@@ -41,73 +89,58 @@ void Ground::LoadFromHeightMap(const Ogre::Texture* hmap)
         Ogre::TEX_TYPE_2D, hmap->getWidth(), hmap->getHeight(),
         0, Ogre::PF_L8);
     const_cast<Ogre::Texture*>(hmap)->copyToTexture(mTexture);
-
     Ogre::Box box = Ogre::Box(0, 0, mTexture->getWidth(), mTexture->getHeight());
 
     auto buffer = mTexture->getBuffer();
-    Ogre::PixelBox data = buffer->lock(box, Ogre::HardwareBuffer::HBL_READ_ONLY);
+    //Ogre::PixelBox data = buffer->lock(box, Ogre::HardwareBuffer::HBL_READ_ONLY);
+    
+    mRootNode = parentNode->createChildSceneNode();
     
 
-    Ogre::ManualObject *man = mSceneManager->createManualObject();
-    
-    
-    auto raw_data = reinterpret_cast<unsigned char*>(data.data);
+    //Ogre::ManualObject *man = mSceneManager->createManualObject();
+    //mObject = mSceneManager->createManualObject();
 
+    
+    
     static const float VERTEX_STEP = 1.0f;
     static const float HEIGHT_STEP = 8.0f;
 
     float offsetX = GROUND_SIZE * VERTEX_STEP / 2.0f;
     float offsetY = GROUND_SIZE * VERTEX_STEP / 2.0f;
 
-    man->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_TRIANGLE_LIST);
+    //CreateRegion(data, Ogre::Vector3(-offsetX, -offsetY, 0.0f), Ogre::Vector3(VERTEX_STEP, VERTEX_STEP, HEIGHT_STEP));
+
+    size_t width  = mTexture->getWidth();
+    size_t height = mTexture->getHeight();
+
+    size_t texRegionWidth  = static_cast<size_t>(std::ceil(static_cast<float>(width) / REGIONS_NUMBER));
+    size_t texRegionHeight = static_cast<size_t>(std::ceil(static_cast<float>(height) / REGIONS_NUMBER));
+    for (size_t y = 0; y < REGIONS_NUMBER; ++y)
     {
-        size_t lastIdx = 0;
-        for (size_t y = 0; y < GROUND_SIZE - 1; ++y)
+        size_t top = y * texRegionHeight;
+        for (size_t x = 0; x < REGIONS_NUMBER; ++x)
         {
-            size_t texY  = static_cast<size_t>(static_cast<float>(y)     / (GROUND_SIZE - 1) * mTexture->getHeight());
-            size_t texYn = static_cast<size_t>(static_cast<float>(y + 1) / (GROUND_SIZE - 1) * mTexture->getHeight());
-            if (texYn > mTexture->getHeight() - 1)
-                texYn = mTexture->getHeight() - 1;
-            for (size_t x = 0; x < GROUND_SIZE - 1; ++x)
-            {
-                size_t texX  = static_cast<size_t>(static_cast<float>(x)     / (GROUND_SIZE - 1) * mTexture->getWidth());
-                size_t texXn = static_cast<size_t>(static_cast<float>(x + 1) / (GROUND_SIZE - 1) * mTexture->getWidth());
-                if (texXn > mTexture->getWidth() - 1)
-                    texXn = mTexture->getWidth() - 1;
+            size_t left = x * texRegionWidth;
+            //Ogre::Box roi = Ogre::Box(left, top, std::min(left + texRegionWidth, width), std::min(top + texRegionHeight, height));
+            Ogre::Box roi = Ogre::Box(left, height - std::min(top + texRegionHeight, height), std::min(left + texRegionWidth, width), height - top);
                 
-                float h00 = data.getColourAt(texX,  texY,  0)[0];
-                float h10 = data.getColourAt(texXn, texY,  0)[0];
-                float h01 = data.getColourAt(texX,  texYn, 0)[0];
-                float h11 = data.getColourAt(texXn, texYn, 0)[0];
+            auto pixels = buffer->lock(roi, Ogre::HardwareBuffer::HBL_READ_ONLY);
+            Ogre::MeshPtr mesh = CreateRegion(y * REGIONS_NUMBER + x, pixels, 
+                Ogre::Vector3(x * VERTEX_STEP * REGION_SIZE - offsetX, y * VERTEX_STEP * REGION_SIZE - offsetY, 0.0f),
+                Ogre::Vector3(VERTEX_STEP, VERTEX_STEP, HEIGHT_STEP));
+            buffer->unlock();
 
-                man->position(x * VERTEX_STEP - offsetX, y * VERTEX_STEP - offsetY, h00 * HEIGHT_STEP);
-                man->colour(h00, h00, h00);
-                man->position((x + 1) * VERTEX_STEP - offsetX, y * VERTEX_STEP - offsetY, h10 * HEIGHT_STEP);
-                man->colour(h10, h10, h10);
-                man->position(x * VERTEX_STEP - offsetX, (y + 1) * VERTEX_STEP - offsetY, h01 * HEIGHT_STEP);
-                man->colour(h01, h01, h01);
-                man->position((x + 1) * VERTEX_STEP - offsetX, (y + 1) * VERTEX_STEP - offsetY, h11 * HEIGHT_STEP);
-                man->colour(h11, h11, h11);
-                
+            Ogre::Entity* entity = mSceneManager->createEntity(mesh);
+            
+            auto node = mRootNode->createChildSceneNode();
+            node->attachObject(entity);
 
-                man->triangle(lastIdx + 1, lastIdx + 2, lastIdx);
-                man->triangle(lastIdx + 3, lastIdx + 2, lastIdx + 1);
-                lastIdx += 4;
-            }
+            mEntities.push_back(entity);
         }
-        /*
-        man->position(0, 1, 0);
-        man->colour(1, 0, 0);
-        man->position(-1, -1, 0);
-        man->colour(0, 1, 0);
-        man->position(1, -1, 0);
-        man->colour(0, 0, 1);
-        man->triangle(0, 1, 2);
-        */
     }
-    man->end();
+   
 
-    Ogre::MeshPtr mesh = man->convertToMesh("Mesh/Ground/" + mName);
-    mEntity = mSceneManager->createEntity(mesh);
+//     Ogre::MeshPtr mesh = mObject->convertToMesh("Mesh/Ground/" + mName);
+//     mEntity = mSceneManager->createEntity(mesh);
 }
 //-------------------------------------------------------
