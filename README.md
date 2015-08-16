@@ -20,11 +20,6 @@ A simple OGRE application with few posteffects implementation. Just for fun
 **Running**
 * Run the application and choose OpenGL render system
 * In the properties of the render system  is recommended to disable full screen
- 
-**Using**
-* You can rotate the ogre head with nouse
-* All posteffects can be enabled/disabled on the panel in the top left corner
-* Press ESC to close the application
 
 **License**
 
