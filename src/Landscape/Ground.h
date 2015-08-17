@@ -28,9 +28,14 @@ namespace Ogre
 
 class Ground
 {
+    static const std::string CLASS_NAME;
+
     static const size_t GROUND_SIZE;
     static const size_t REGION_SIZE;
     static const size_t REGIONS_NUMBER;
+    //-------------------------------------------------------
+
+    static Ogre::Material* CreateGroundMaterialTextured(const std::string & name, const Ogre::Texture* texture);
     //-------------------------------------------------------
 
     std::string mName;
@@ -41,13 +46,15 @@ class Ground
     Ogre::SceneNode* mRootNode;
     //-------------------------------------------------------
 
+
+
     /**
      *	Create ground submesh for the given area of the height map
      *  @param pixels - are of the height map
      *  @param offset - top left vertex position
      *  @param steps - horizontal and vertical steps between vertex
      */
-    Ogre::MeshPtr CreateRegion(size_t id, Ogre::PixelBox& pixels, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps);
+    Ogre::MeshPtr CreateRegion(size_t id, const std::string & material, Ogre::PixelBox& pixels, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps, const Ogre::Vector2 & texOffset);
 
     Ground(const Ground&) = delete;
     Ground& operator=(const Ground&) = delete;
