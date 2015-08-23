@@ -16,6 +16,9 @@
 #include <OgreCommon.h>
 #include <OgreTexture.h>
 #include <OgreMesh.h>
+#include <OgreVector3.h>
+#include <OgreRay.h>
+#include <OgreAxisAlignedBox.h>
 
 namespace Ogre
 {
@@ -36,14 +39,19 @@ class Ground
     //-------------------------------------------------------
 
     static Ogre::Material* CreateGroundMaterialTextured(const std::string & name, const Ogre::Texture* texture);
+
+    static std::pair<bool, float> GetVertexIntersection(const Ogre::Ray & ray, const Ogre::SubMesh* subMesh);
     //-------------------------------------------------------
 
     std::string mName;
     Ogre::SceneManager* mSceneManager;
     //Ogre::ManualObject* mObject;
     Ogre::TexturePtr mTexture;
+
     std::vector<Ogre::Entity*> mEntities;
     Ogre::SceneNode* mRootNode;
+
+    Ogre::AxisAlignedBox mGlobalBoundingBox;
     //-------------------------------------------------------
 
 
@@ -55,6 +63,7 @@ class Ground
      *  @param steps - horizontal and vertical steps between vertex
      */
     Ogre::MeshPtr CreateRegion(size_t id, const std::string & material, Ogre::PixelBox& pixels, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps, const Ogre::Vector2 & texOffset);
+
 
     Ground(const Ground&) = delete;
     Ground& operator=(const Ground&) = delete;
@@ -75,6 +84,15 @@ public:
         return mRootNode;
     }
 
+    //s, t from [0, 1]
+    float GetHeightAt(float s, float t);
+
+    /**
+     *	Find intersection of the ground and a ray in local space
+     *  @param ray - ray in local space 
+     *  @return intersection flag and local space position
+     */
+    std::pair<bool, Ogre::Vector3> GetIntersectionLocalSpace(const Ogre::Ray & ray) const;
 };
 
 

@@ -17,6 +17,8 @@
 #include <OgreManualObject.h>
 #include <OgreSceneManager.h>
 #include <OgreMesh.h>
+#include <OgreSubMesh.h>
+#include <OgreVertexIndexData.h>
 #include <OgreHardwarePixelBuffer.h>
 #include <OgreHighLevelGpuProgram.h>
 #include <OgreHighLevelGpuProgramManager.h>
@@ -90,6 +92,52 @@ Ogre::Material* Ground::CreateGroundMaterialTextured(const std::string & name, c
     return material.get();
 }
 //-------------------------------------------------------
+// http://www.ogre3d.org/tikiwiki/Raycasting+to+the+polygon+level
+std::pair<bool, float> Ground::GetVertexIntersection(const Ogre::Ray & ray, const Ogre::SubMesh* subMesh)
+{
+    OgreAssert(false == subMesh->useSharedVertices, "Mesh with shared data is not supported");
+
+    const Ogre::VertexElement* posElem = subMesh->vertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_POSITION);
+    
+    Ogre::HardwareVertexBufferSharedPtr vbuffer = subMesh->vertexData->vertexBufferBinding->getBuffer(posElem->getSource());
+
+    unsigned char* vertexes = reinterpret_cast<unsigned char*>(vbuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+
+    size_t count = subMesh->vertexData->vertexCount;
+
+    float intersection = -1.0f;
+
+    OgreAssert(count == REGION_SIZE * REGION_SIZE * 4, "Wrong buffer size");
+    float* pReal;
+    for (size_t i = 0; i < REGION_SIZE * REGION_SIZE; ++i)
+    {
+        Ogre::Vector3 v0, v1, v2, v3;
+        for (auto vp : { &v0, &v1, &v2, &v3 })
+        {
+            posElem->baseVertexPointerToElement(vertexes, &pReal);
+            *vp = Ogre::Vector3(pReal[0], pReal[1], pReal[2]);
+            vertexes += vbuffer->getVertexSize();
+        }
+
+        auto hit1 = Ogre::Math::intersects(ray, v1, v2, v0, true, false);
+        if (hit1.first && (intersection < 0.0f || hit1.second < intersection))
+        {
+            intersection = hit1.second;
+        }
+        auto hit2 = Ogre::Math::intersects(ray, v3, v2, v1, true, false);
+        if (hit2.first && (intersection < 0.0f || hit2.second < intersection))
+        {
+            intersection = hit2.second;
+        }
+    }
+    vbuffer->unlock();
+    if (intersection >= 0.0f)
+    {
+        return std::make_pair(true, intersection);
+    }
+    return std::make_pair(false, -1.0f);
+}
+//-------------------------------------------------------
 Ground::Ground(const std::string & name, Ogre::SceneManager* sceneManager):
     mName(name), mSceneManager(sceneManager)
 {
@@ -98,7 +146,11 @@ Ground::Ground(const std::string & name, Ogre::SceneManager* sceneManager):
 //-------------------------------------------------------
 Ground::~Ground()
 {
-
+    if (nullptr != mTexture.get())
+    {
+        Ogre::TextureManager::getSingleton().remove(mTexture->getName());
+        mTexture.setNull();
+    }
 }
 //-------------------------------------------------------
 Ogre::MeshPtr Ground::CreateRegion(size_t id, const std::string & material, Ogre::PixelBox& pixels, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps, const Ogre::Vector2 & texOffset)
@@ -179,6 +231,8 @@ void Ground::LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* paren
     //Ogre::ManualObject *man = mSceneManager->createManualObject();
     //mObject = mSceneManager->createManualObject();
 
+    mGlobalBoundingBox.setNull();
+
     Ogre::Material* groundMaterial = CreateGroundMaterialTextured("Material/" + CLASS_NAME + "/Textured", mTexture.get());
     
     static const float VERTEX_STEP = 1.0f;
@@ -216,6 +270,9 @@ void Ground::LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* paren
             
             auto node = mRootNode->createChildSceneNode();
             node->attachObject(entity);
+            node->showBoundingBox(true);
+
+            mGlobalBoundingBox.merge(entity->getBoundingBox());
 
             mEntities.push_back(entity);
         }
@@ -225,4 +282,48 @@ void Ground::LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* paren
 //     Ogre::MeshPtr mesh = mObject->convertToMesh("Mesh/Ground/" + mName);
 //     mEntity = mSceneManager->createEntity(mesh);
 }
+//-------------------------------------------------------
+float Ground::GetHeightAt(float s, float t)
+{
+    OgreAssert(0.0f <= s && s <= 1.0f && 0.0f <= t && t <= 1.0f, "S and T should be from [0, 1]");
+    OgreAssert(nullptr != mTexture.get(), "Ground[GetHeightAt]: Not initialized");
+
+    size_t x = static_cast<size_t>(s * (mTexture->getWidth() - 1));
+    size_t y = static_cast<size_t>(t * (mTexture->getHeight() - 1));
+
+    Ogre::Box box = Ogre::Box(0, 0, mTexture->getWidth(), mTexture->getHeight());
+    auto buffer = mTexture->getBuffer();
+
+    auto pixels = buffer->lock(box, Ogre::HardwareBuffer::HBL_READ_ONLY);
+    float height = pixels.getColourAt(x, y, 0)[0];
+    buffer->unlock();
+
+    return height;
+}
+//-------------------------------------------------------
+std::pair<bool, Ogre::Vector3> Ground::GetIntersectionLocalSpace(const Ogre::Ray & ray) const
+{
+    if (ray.intersects(mGlobalBoundingBox).first)
+    {
+        float intersection = -1.0f;
+        for (const auto & region : mEntities)
+        {
+            auto hit = ray.intersects(region->getBoundingBox());
+            if (hit.first)
+            {
+                auto meshHit = GetVertexIntersection(ray, region->getMesh()->getSubMesh(0));
+                if (meshHit.first && (intersection < 0.0f || meshHit.second < intersection))
+                {
+                    intersection = meshHit.second;
+                }
+            }
+        }
+        if (intersection >= 0.0f)
+        {
+            return std::make_pair(true, ray.getPoint(intersection));
+        }
+    }
+    return std::make_pair(false, Ogre::Vector3::ZERO);
+}
+
 //-------------------------------------------------------
