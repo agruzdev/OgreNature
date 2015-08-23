@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-project(OgrePosteffects)
+project(OgreNature)
 
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -117,26 +117,26 @@ if(PostEffects_ENABLE_TEST_EFFECTS)
 endif()
  
 # create project
-add_executable(OgrePosteffects WIN32 ${all_sources})
+add_executable(OgreNature WIN32 ${all_sources})
 
 # include libs
-target_link_libraries(OgrePosteffects ${Boost_LIBRARIES})
+target_link_libraries(OgreNature ${Boost_LIBRARIES})
 
-target_link_libraries(OgrePosteffects debug ${OGRE_OIS_LIB_DBG}/OIS_d.lib)
-target_link_libraries(OgrePosteffects optimized  ${OGRE_OIS_LIB_REL}/OIS.lib)
+target_link_libraries(OgreNature debug ${OGRE_OIS_LIB_DBG}/OIS_d.lib)
+target_link_libraries(OgreNature optimized  ${OGRE_OIS_LIB_REL}/OIS.lib)
  
-target_link_libraries(OgrePosteffects debug ${OGRE_LIBS_DIR_DBG}/OgreMain_d.lib)
-target_link_libraries(OgrePosteffects debug ${OGRE_LIBS_DIR_DBG}/OgreOverlay_d.lib)
+target_link_libraries(OgreNature debug ${OGRE_LIBS_DIR_DBG}/OgreMain_d.lib)
+target_link_libraries(OgreNature debug ${OGRE_LIBS_DIR_DBG}/OgreOverlay_d.lib)
 
-target_link_libraries(OgrePosteffects optimized ${OGRE_LIBS_DIR_REL}/OgreMain.lib)
-target_link_libraries(OgrePosteffects optimized ${OGRE_LIBS_DIR_REL}/OgreOverlay.lib)
+target_link_libraries(OgreNature optimized ${OGRE_LIBS_DIR_REL}/OgreMain.lib)
+target_link_libraries(OgreNature optimized ${OGRE_LIBS_DIR_REL}/OgreOverlay.lib)
 
 # Install project
 if(WIN32)
 
 	install(FILES ${OGRE_BIN_DIR_REL}/OgreMain.dll
 		${OGRE_BIN_DIR_REL}/RenderSystem_GL.dll
-        ${OGRE_BIN_DIR_REL}/RenderSystem_Direct3D9.dll
+        ${OGRE_BIN_DIR_REL}/RenderSystem_GL3Plus.dll
         ${OGRE_BIN_DIR_REL}/OgreOverlay.dll
 		${OGRE_OIS_BIN_REL}/OIS.dll
         ${OGRE_BIN_DIR_REL}/Plugin_ParticleFX.dll
@@ -146,7 +146,7 @@ if(WIN32)
  
 	install(FILES ${OGRE_BIN_DIR_DBG}/OgreMain_d.dll
 		${OGRE_BIN_DIR_DBG}/RenderSystem_GL_d.dll
-        ${OGRE_BIN_DIR_DBG}/RenderSystem_Direct3D9_d.dll
+        ${OGRE_BIN_DIR_DBG}/RenderSystem_GL3Plus_d.dll
         ${OGRE_BIN_DIR_DBG}/OgreOverlay_d.dll
 		${OGRE_OIS_BIN_DBG}/OIS_d.dll
         ${OGRE_BIN_DIR_DBG}/Plugin_ParticleFX_d.dll
