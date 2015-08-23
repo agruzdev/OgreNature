@@ -32,6 +32,9 @@ protected:
     bool mZoomingMore = false;
     bool mZoomingLess = false;
 
+    bool mTiltForward = false;
+    bool mTiltBackward = false;
+
     bool mFastMove = false;
     //-------------------------------------------------------
 
@@ -88,6 +91,16 @@ public:
      */
     virtual bool frameRenderingQueued(const Ogre::FrameEvent& evt)
     {
+        if (mTiltForward)
+        {
+            mCamera->pitch(Ogre::Radian(Ogre::Degree(-0.1)));
+        }
+        if (mTiltBackward)
+        {
+            mCamera->pitch(Ogre::Radian(Ogre::Degree(0.1)));
+        }
+        
+
         // build our acceleration vector based on keyboard input composite
         Ogre::Vector3 accel = Ogre::Vector3::ZERO;
         
@@ -162,6 +175,12 @@ public:
         case OIS::KC_LSHIFT:
             mFastMove = true;
             break;
+        case OIS::KC_PGUP:
+            mTiltBackward = true;
+            break;
+        case OIS::KC_PGDOWN:
+            mTiltForward = true;
+            break;
         default:
             break;
         }
@@ -198,6 +217,12 @@ public:
             break;
         case OIS::KC_LSHIFT:
             mFastMove = false;
+            break;
+        case OIS::KC_PGUP:
+            mTiltBackward = false;
+            break;
+        case OIS::KC_PGDOWN:
+            mTiltForward = false;
             break;
         default:
             break;
