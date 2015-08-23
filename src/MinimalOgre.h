@@ -41,16 +41,15 @@ This source file is part of the
 #include <OgreRenderTarget.h>
 #include <OgreRenderTargetListener.h>
 #include <OgreCompositorInstance.h>
- 
+
+#include "CameraManagerRts.h"
+
 #if OGRE_VERSION_MINOR == 9 && OGRE_VERSION_PATCH < 1
 //In OGRE SDK 1.9.0 is used name HashMap
 #define OGRE_HashMap HashMap
 #endif
 
-namespace OgreEffect
-{
-    class PostEffect;
-}
+class World;
 
 class MinimalOgre : public Ogre::FrameListener, 
 	public Ogre::WindowEventListener, public OIS::KeyListener, 
@@ -81,7 +80,8 @@ protected:
     // OgreBites
 	OgreBites::InputContext mInputContext;
     OgreBites::SdkTrayManager* mTrayMgr;
-    OgreBites::SdkCameraMan* mCameraMan;      // basic camera controller
+    //OgreBites::SdkCameraMan* mCameraMan;      // basic camera controller
+    CameraManagerRts* mCameraMan;      // rts camera controller
     //OgreBites::ParamsPanel* mDetailsPanel;    // sample details panel
     //bool mCursorWasVisible;                   // was cursor visible before dialog appeared
     bool mShutDown;
@@ -121,13 +121,12 @@ private:
 	Ogre::Entity* mOgreHead;
 	Ogre::Entity* mBgTexturePlane;
 
-    using PostEffectsMap = OGRE_HashMap<Ogre::String, OgreEffect::PostEffect*>;
-    PostEffectsMap mPostEffects;
-
     void SetupEffectsGui();
 	void CreateMaterials();
 	void SetupScene();
     void SetupPostEffects();
+
+    std::unique_ptr<World> mWorld;
 };
  
 #endif // #ifndef __MinimalOgre_h_

@@ -38,7 +38,10 @@ This source file is part of the
 
 #include "Shaders.h"
 
-#include "Landscape/Ground.h"
+#include "CameraManagerRts.h"
+
+#include "Nature/Ground.h"
+#include "Nature/World.h"
 
 const Ogre::Real MinimalOgre::ROTATION_VELOCITY = static_cast<Ogre::Real>(100.0);
 const Ogre::Real MinimalOgre::ZOOM_VELOCITY = static_cast<Ogre::Real>(1000.0);
@@ -67,6 +70,8 @@ MinimalOgre::MinimalOgre(void)
 //-------------------------------------------------------------------------------------
 MinimalOgre::~MinimalOgre(void)
 {
+    mWorld.reset();
+
     if (mTrayMgr) delete mTrayMgr;
     if (mCameraMan) delete mCameraMan;
 	if (mOverlaySystem) delete mOverlaySystem;
@@ -144,9 +149,11 @@ bool MinimalOgre::go(void)
     mCamera->setPosition(Ogre::Vector3(0,0,80));
     // Look back along -Z
     mCamera->lookAt(Ogre::Vector3(0,0,-300));
-    mCamera->setNearClipDistance(5);
+    mCamera->setNearClipDistance(1);
  
-    mCameraMan = new OgreBites::SdkCameraMan(mCamera);   // create a default camera controller
+    //mCameraMan = new OgreBites::SdkCameraMan(mCamera);   // create a default camera controller
+    mCameraMan = new CameraManagerRts(mCamera);
+    mCameraMan->setTopSpeed(50.0f);
 //-------------------------------------------------------------------------------------
     // create viewports
     // Create one viewport, entire window
@@ -214,8 +221,8 @@ void MinimalOgre::SetupEffectsGui()
     mTrayMgr = new OgreBites::SdkTrayManager("InterfaceName", mWindow, mInputContext, this);
     mTrayMgr->showFrameStats(OgreBites::TL_BOTTOMLEFT);
     mTrayMgr->showLogo(OgreBites::TL_BOTTOMRIGHT);
-    //mTrayMgr->showCursor();
-    mTrayMgr->hideCursor();
+    mTrayMgr->showCursor();
+    //mTrayMgr->hideCursor();
     /*
     // create a params panel for displaying sample details
     Ogre::StringVector items;
@@ -422,6 +429,28 @@ bool MinimalOgre::mousePressed( const OIS::MouseEvent &arg, OIS::MouseButtonID i
 #else
 	if (mTrayMgr->injectPointerDown(arg, id)) return true;
 #endif
+
+    if (id == OIS::MB_Left)
+    {
+        auto vp = mCamera->getViewport();
+        auto ray = mCamera->getCameraToViewportRay(arg.state.X.abs / static_cast<float>(vp->getActualWidth()), 
+            arg.state.Y.abs / static_cast<float>(vp->getActualHeight()));
+        if (nullptr != mWorld.get())
+        {
+            auto hit = mWorld->GetIntersection(ray);
+            if (true == std::get<0>(hit))
+            {
+                Ogre::Vector3 position = std::get<1>(hit);
+                
+                auto sphere = mSceneMgr->createEntity(Ogre::SceneManager::PT_SPHERE);
+                auto node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+                node->attachObject(sphere);
+                node->setScale(0.01f, 0.01f, 0.01f);
+                node->setPosition(position);
+            }
+        }
+    }
+
     return true;
 }
  
@@ -567,25 +596,7 @@ void MinimalOgre::SetupScene()
 
 	//mOgreHead = mSceneMgr->createEntity("Head", "ogrehead.mesh");
 
-    Ogre::Image heightMapImage;
-    heightMapImage.load("terrain.jpg", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-    Ogre::TexturePtr heightMapTexture = Ogre::TextureManager::getSingleton().loadImage("Texture/Terrain",
-        Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, heightMapImage);
-
-    auto ground = std::make_unique<Ground>("Ground", mSceneMgr);
-    ground->LoadFromHeightMap(heightMapTexture.get(), mSceneMgr->getRootSceneNode());
-    //mOgreHead = ground->GetEntity();
-
-	//Ogre::SceneNode* headNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
-	//headNode->attachObject(mOgreHead);
-    //headNode->setScale(0.27f * Ogre::Vector3::UNIT_SCALE);
-
-    Ogre::SceneNode* headNode = ground->GetNode();
-    headNode->setScale(0.27f * Ogre::Vector3::UNIT_SCALE);
-
-    Ogre::Quaternion rot;
-    rot.FromAngleAxis(Ogre::Radian(Ogre::Degree(-90)), Ogre::Vector3::UNIT_X);
-    headNode->setOrientation(rot);
+    mWorld = std::make_unique<World>("Default", mSceneMgr);
 
 	// Set ambient light
 	mSceneMgr->setAmbientLight(Ogre::ColourValue(0.5, 0.5, 0.5));
