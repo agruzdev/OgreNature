@@ -203,7 +203,7 @@ void Ground::LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* paren
         {
             size_t left = x * texRegionWidth;
             //Ogre::Box roi = Ogre::Box(left, top, std::min(left + texRegionWidth, width), std::min(top + texRegionHeight, height));
-            Ogre::Box roi = Ogre::Box(left, height - std::min(top + texRegionHeight, height), std::min(left + texRegionWidth, width), height - top);
+            Ogre::Box roi = Ogre::Box(left, height - std::min(top + texRegionHeight + 1, height), std::min(left + texRegionWidth + 1, width), height - top);
                 
             auto pixels = buffer->lock(roi, Ogre::HardwareBuffer::HBL_READ_ONLY);
             Ogre::MeshPtr mesh = CreateRegion(y * REGIONS_NUMBER + x, groundMaterial->getName(), pixels,
