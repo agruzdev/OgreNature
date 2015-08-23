@@ -12,7 +12,7 @@
 #ifndef _GROUND_H_
 #define _GROUND_H_
 
-#include <string>
+#include <OgrePrerequisites.h>
 #include <OgreCommon.h>
 #include <OgreTexture.h>
 #include <OgreMesh.h>

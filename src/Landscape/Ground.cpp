@@ -20,6 +20,10 @@
 #include <OgreHardwarePixelBuffer.h>
 #include <OgreHighLevelGpuProgram.h>
 #include <OgreHighLevelGpuProgramManager.h>
+#include <OgreMaterialManager.h>
+#include <OgreTechnique.h>
+#include <OgrePass.h>
+#include <OgreSceneNode.h>
 
 namespace
 {

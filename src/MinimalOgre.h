@@ -42,7 +42,7 @@ This source file is part of the
 #include <OgreRenderTargetListener.h>
 #include <OgreCompositorInstance.h>
  
-#if OGRE_VERSION_PATCH < 1
+#if OGRE_VERSION_MINOR == 9 && OGRE_VERSION_PATCH < 1
 //In OGRE SDK 1.9.0 is used name HashMap
 #define OGRE_HashMap HashMap
 #endif

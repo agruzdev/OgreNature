@@ -384,10 +384,11 @@ bool MinimalOgre::mouseMoved( const OIS::MouseEvent &evt )
 {
 #if (OGRE_VERSION_MAJOR == 1) && (OGRE_VERSION_MINOR == 9) && (OGRE_VERSION_PATCH == 0)
     if (mTrayMgr->injectMouseMove(evt)) return true;
+    mCameraMan->injectMouseMove(evt);
 #else
     if (mTrayMgr->injectPointerMove(evt)) return true;
+    mCameraMan->injectPointerMove(evt);
 #endif
-    mCameraMan->injectMouseMove(evt);
 #if 0
     Ogre::SceneNode* headNode = mOgreHead->getParentSceneNode();
     if (nullptr != headNode)
