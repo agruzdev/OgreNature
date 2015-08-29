@@ -442,11 +442,12 @@ bool MinimalOgre::mousePressed( const OIS::MouseEvent &arg, OIS::MouseButtonID i
             {
                 Ogre::Vector3 position = std::get<1>(hit);
                 
-                auto sphere = mSceneMgr->createEntity(Ogre::SceneManager::PT_SPHERE);
+                auto tree = mSceneMgr->createEntity("tree_1.mesh");
                 auto node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
-                node->attachObject(sphere);
-                node->setScale(0.01f, 0.01f, 0.01f);
+                node->attachObject(tree);
+                node->setScale(0.001f, 0.001f, 0.001f);
                 node->setPosition(position);
+                node->showBoundingBox(true);
             }
         }
     }

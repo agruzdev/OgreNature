@@ -93,11 +93,11 @@ public:
     {
         if (mTiltForward)
         {
-            mCamera->pitch(Ogre::Radian(Ogre::Degree(-0.1)));
+            mCamera->pitch(Ogre::Radian(Ogre::Degree(-0.1f)));
         }
         if (mTiltBackward)
         {
-            mCamera->pitch(Ogre::Radian(Ogre::Degree(0.1)));
+            mCamera->pitch(Ogre::Radian(Ogre::Degree(0.1f)));
         }
         
 
