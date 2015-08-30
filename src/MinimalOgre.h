@@ -68,6 +68,8 @@ protected:
     static const Ogre::Real HEAD_SCALE_MIN;
     static const Ogre::Real HEAD_SCALE_MAX;
 
+    Ogre::Timer mTimer;
+
     Ogre::Root *mRoot;
     Ogre::Camera* mCamera;
     Ogre::SceneManager* mSceneMgr;

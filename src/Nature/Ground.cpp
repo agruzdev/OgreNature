@@ -262,7 +262,7 @@ void Ground::LoadFromHeightMap(std::shared_ptr<Ogre::Image> hmap, Ogre::SceneNod
     }
 }
 //-------------------------------------------------------
-float Ground::GetHeightAt(float s, float t)
+float Ground::GetHeightAt(float s, float t) const
 {
     OgreAssert(0.0f <= s && s <= 1.0f && 0.0f <= t && t <= 1.0f, "S and T should be from [0, 1]");
     OgreAssert(nullptr != mImage.get(), "Ground[GetHeightAt]: Not initialized");

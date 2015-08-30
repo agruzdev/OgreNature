@@ -84,7 +84,7 @@ public:
     }
 
     //s, t from [0, 1]
-    float GetHeightAt(float s, float t);
+    float GetHeightAt(float s, float t) const;
 
     /**
      *	Find intersection of the ground and a ray in local space
@@ -92,6 +92,14 @@ public:
      *  @return intersection flag and local space position
      */
     std::pair<bool, Ogre::Vector3> GetIntersectionLocalSpace(const Ogre::Ray & ray) const;
+
+    /**
+     *	Get min and max vertex coords of the ground in the local space
+     */
+    Ogre::AxisAlignedBox GetLocalSpaceBounds() const
+    {
+        return mGlobalBoundingBox;
+    }
 };
 
 

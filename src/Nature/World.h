@@ -25,6 +25,7 @@ namespace Ogre
 }
 
 class Ground;
+class EternalForest;
 
 class World
 {
@@ -35,6 +36,8 @@ class World
     std::unique_ptr<Ground> mGround;
     Ogre::SceneNode* mGroundNode;
 
+    std::unique_ptr<EternalForest> mForest;
+
     //-------------------------------------------------------
 
     World(const World&) = delete;
@@ -44,10 +47,21 @@ class World
 public:
     World(const std::string & name, Ogre::SceneManager* sceneManager);
     ~World();
+    /**
+     *	Update world's state
+     */
+    void Update(float time);
+    /**
+     *	Find intersection with a ray
+     *  @param ray - a ray in world space
+     *  @return intersection status, intersection position, intersected object 
+     */
+    std::tuple<bool, Ogre::Vector3, Ogre::Entity*> GetIntersection(const Ogre::Ray & ray) const;
 
-
-    std::tuple<bool, Ogre::Vector3, Ogre::Entity*> GetIntersection(const Ogre::Ray & ray);
-
+    /**
+     *	Ground is supposed to be parallel to the XZ plane
+     */
+    float GetGroundHeightAt(float x, float z) const;
 };
 
 

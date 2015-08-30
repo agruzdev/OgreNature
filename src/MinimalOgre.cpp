@@ -66,6 +66,7 @@ MinimalOgre::MinimalOgre(void)
     mKeyboard(0),
 	mOverlaySystem(0)
 {
+    mTimer.reset();
 }
 //-------------------------------------------------------------------------------------
 MinimalOgre::~MinimalOgre(void)
@@ -211,6 +212,8 @@ bool MinimalOgre::go(void)
 
     mRoot->addFrameListener(this);
 //-------------------------------------------------------------------------------------
+    mTimer.reset();
+
     mRoot->startRendering();
  
     return true;
@@ -280,6 +283,7 @@ bool MinimalOgre::frameRenderingQueued(const Ogre::FrameEvent& evt)
         }*/
     }
     
+    mWorld->Update(static_cast<float>(mTimer.getMilliseconds()));
  
     return true;
 }
