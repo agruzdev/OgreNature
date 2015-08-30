@@ -20,6 +20,8 @@
 #include <OgreAxisAlignedBox.h>
 #include <OgreVector2.h>
 
+#include "../Common/Controllers.h"
+
 namespace boost
 {
     template<typename T, std::size_t NumDims, typename Allocator>
@@ -36,7 +38,6 @@ namespace Ogre
 class Ground;
 class World;
 
-
 class EternalForest
 {
     struct BlockInfo
@@ -48,13 +49,14 @@ class EternalForest
             TREE = 4
         };
 
-        Ogre::Entity* tree = nullptr;
+        Ogre::SceneNode* treeNode = nullptr;
         uint8_t flags = EMPTY;
         float _height = 0.0f;
     };
     using LifeField = boost::multi_array<BlockInfo, 2, std::allocator<BlockInfo> >;
 
     static const float FIELD_BLOCK_SIZE;
+    static const float FIELD_UPDATE_TICK;
 
     Ogre::SceneManager* mSceneManager;
     const World* mWorld;
@@ -64,7 +66,10 @@ class EternalForest
     Ogre::AxisAlignedBox mBorders;
 
     std::unique_ptr<LifeField> mLifeField;
+    std::unique_ptr<LifeField> mLifeFieldNext;
     Ogre::Vector2 mFieldOffset = Ogre::Vector2::ZERO;
+
+    TimeStepController<float> mUpdateTickController;
 
 protected:
     void InitField(size_t startAmount);

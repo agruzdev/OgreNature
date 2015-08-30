@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <io.h>
+#include <fcntl.h>
+
 #include "MinimalOgre.h"
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
@@ -15,6 +19,14 @@ extern "C" {
 	int main(int argc, char *argv[])
 #endif
 	{
+        AllocConsole();
+
+        HANDLE handle_out = GetStdHandle(STD_OUTPUT_HANDLE);
+        int hCrt = _open_osfhandle((long)handle_out, _O_TEXT);
+        FILE* hf_out = _fdopen(hCrt, "w");
+        setvbuf(hf_out, NULL, _IONBF, 1);
+        *stdout = *hf_out;
+
 		// Create application object
 		MinimalOgre app;
 

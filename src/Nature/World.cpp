@@ -59,7 +59,7 @@ World::World(const std::string & name, Ogre::SceneManager* sceneManager):
 
     Ogre::AxisAlignedBox bounds = mGround->GetLocalSpaceBounds();
     bounds.setMinimumZ(1.0f);
-    bounds.setMaximumZ(bounds.getMaximum()[1] * 0.7f);
+    bounds.setMaximumZ(2.0f);
     mForest = std::make_unique<EternalForest>(mSceneManager, this, mGround.get(), TransformBox(bounds, Ogre::Vector3::ZERO, groundScale, groundOrientation));
 }
 //-------------------------------------------------------

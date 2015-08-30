@@ -20,10 +20,11 @@
 #include "Ground.h"
 #include "World.h"
 
-const float EternalForest::FIELD_BLOCK_SIZE = 4.0f;
+const float EternalForest::FIELD_BLOCK_SIZE  = 1.0f;
+const float EternalForest::FIELD_UPDATE_TICK = 1.0f;
 //-------------------------------------------------------
 EternalForest::EternalForest(Ogre::SceneManager* sceneManager, const World* world, const Ground* ground, const Ogre::AxisAlignedBox & forestBorders):
-    mBorders(forestBorders), mSceneManager(sceneManager), mGround(ground), mWorld(world)
+    mBorders(forestBorders), mSceneManager(sceneManager), mGround(ground), mWorld(world), mUpdateTickController(FIELD_UPDATE_TICK)
 {
     
 }
@@ -45,12 +46,18 @@ void EternalForest::InitField(size_t startAmount)
     mFieldOffset[1] = 0.5f * std::fmod(maxBorder[0] - minBorder[0], FIELD_BLOCK_SIZE) + minBorder[2];
 
     mLifeField = std::make_unique<LifeField>(boost::extents[fieldSizeZ][fieldSizeX]);
+    mLifeFieldNext = std::make_unique<LifeField>(boost::extents[fieldSizeZ][fieldSizeX]);
     
     LifeField& field = *mLifeField;
     for (uint32_t z = 0; z < fieldSizeZ; ++z)
     {
         for (uint32_t x = 0; x < fieldSizeX; ++x)
         {
+            if (z == 0 || z == fieldSizeZ - 1 || x == 0 || x == fieldSizeX - 1)
+            {
+                field[z][x].flags = BlockInfo::BLOCKED;
+                continue;
+            }
             float s = mFieldOffset[0] + (x + 0.5f) * FIELD_BLOCK_SIZE;
             float t = mFieldOffset[1] + (z + 0.5f) * FIELD_BLOCK_SIZE;
             float h = mWorld->GetGroundHeightAt(s, t);
@@ -73,10 +80,10 @@ void EternalForest::InitField(size_t startAmount)
                 (*mLifeField)[z][x].flags = BlockInfo::TREE;
                 auto tree = mSceneManager->createEntity("tree_1.mesh");
                 auto node = mSceneManager->getRootSceneNode()->createChildSceneNode();
-                node->setScale(0.001f, 0.001f, 0.001f);
+                node->setScale(0.0005f, 0.0005f, 0.0005f);
                 node->setPosition(Ogre::Vector3(mFieldOffset[0] + (x + 0.5f) * FIELD_BLOCK_SIZE, (*mLifeField)[z][x]._height, mFieldOffset[1] + (z + 0.5f) * FIELD_BLOCK_SIZE));
                 node->attachObject(tree);
-                (*mLifeField)[z][x].tree = tree;
+                (*mLifeField)[z][x].treeNode = node;
                 break;
             }
             ++attempts;
@@ -87,14 +94,76 @@ void EternalForest::InitField(size_t startAmount)
 //-------------------------------------------------------
 void EternalForest::UpdateField(float time, size_t quota)
 {
+    LifeField& field = *mLifeField;
+    uint32_t width =  mLifeField->shape()[0];
+    uint32_t height = mLifeField->shape()[1];
 
+    for (uint32_t z = 1; z < height - 1; ++z)
+    {
+        for (uint32_t x = 1; x < width - 1; ++x)
+        {
+            BlockInfo& current = field[z][x];
+            BlockInfo& next = (*mLifeFieldNext)[z][x];
+            assert(current.flags == BlockInfo::BLOCKED || current.flags == BlockInfo::TREE || current.flags == BlockInfo::EMPTY);
+
+            next = current;
+            if (0 == (current.flags & BlockInfo::BLOCKED))
+            {
+                auto neighbors = {
+                    field[z - 1][x - 1].flags,
+                    field[z - 1][x].flags,
+                    field[z - 1][x + 1].flags,
+                    field[z][x - 1].flags,
+                    field[z][x + 1].flags,
+                    field[z + 1][x - 1].flags,
+                    field[z + 1][x].flags,
+                    field[z + 1][x + 1].flags
+                };
+                uint8_t sum = 0;
+                std::for_each(std::cbegin(neighbors), std::cend(neighbors), [&sum](const uint8_t& flags)->void { if(flags & BlockInfo::TREE) ++sum; });
+                if (current.flags & BlockInfo::TREE)
+                {
+                    if (sum < 3 || sum > 4)
+                    {
+                        current.treeNode->detachAllObjects();
+                        current.treeNode->removeAndDestroyAllChildren();
+                        current.treeNode = nullptr;
+
+                        next.flags = BlockInfo::EMPTY;
+                        next.treeNode = nullptr;
+                    }
+                }
+                else if (current.flags & BlockInfo::EMPTY)
+                {
+                    if (sum >= 3 && sum <= 4)
+                    {
+                        auto tree = mSceneManager->createEntity("tree_1.mesh");
+                        auto node = mSceneManager->getRootSceneNode()->createChildSceneNode();
+                        node->setScale(0.0005f, 0.0005f, 0.0005f);
+                        node->setPosition(Ogre::Vector3(mFieldOffset[0] + (x + 0.5f) * FIELD_BLOCK_SIZE, (*mLifeField)[z][x]._height, mFieldOffset[1] + (z + 0.5f) * FIELD_BLOCK_SIZE));
+                        node->attachObject(tree);
+
+                        next.flags = BlockInfo::TREE;
+                        next.treeNode = node;
+                    }
+                }
+            }
+        }
+    }
+    mLifeField.swap(mLifeFieldNext);
 }
 //-------------------------------------------------------
 void EternalForest::Update(float time)
 {
     if (nullptr == mLifeField.get())
     {
-        InitField(mTreesQuota / 2);
+        InitField(6 * mTreesQuota);
     }
-    UpdateField(time, mTreesQuota);
+    else
+    {
+        if (mUpdateTickController.Tick(time))
+        {
+            UpdateField(time, mTreesQuota);
+        }
+    }
 }

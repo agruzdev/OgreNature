@@ -283,7 +283,7 @@ bool MinimalOgre::frameRenderingQueued(const Ogre::FrameEvent& evt)
         }*/
     }
     
-    mWorld->Update(static_cast<float>(mTimer.getMilliseconds()));
+    mWorld->Update(static_cast<float>(mTimer.getMilliseconds()) / 1000.0f);
  
     return true;
 }
