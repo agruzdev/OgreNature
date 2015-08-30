@@ -24,13 +24,11 @@ World::World(const std::string & name, Ogre::SceneManager* sceneManager):
     mName(name), mSceneManager(sceneManager)
 {
 
-    Ogre::Image heightMapImage;
-    heightMapImage.load("terrain.jpg", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-    Ogre::TexturePtr heightMapTexture = Ogre::TextureManager::getSingleton().loadImage("Texture/Terrain",
-        Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, heightMapImage);
+    std::shared_ptr<Ogre::Image> heightMapImage = std::make_shared<Ogre::Image>();
+    heightMapImage->load("terrain.jpg", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
 
     mGround = std::make_unique<Ground>("Ground", mSceneManager);
-    mGround->LoadFromHeightMap(heightMapTexture.get(), mSceneManager->getRootSceneNode());
+    mGround->LoadFromHeightMap(heightMapImage, mSceneManager->getRootSceneNode());
 
     mGroundNode = mGround->GetNode();
     mGroundNode->setScale(Ogre::Vector3(0.27f, 0.27f, 1.0f));

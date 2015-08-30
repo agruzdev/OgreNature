@@ -26,6 +26,7 @@
 #include <OgreTechnique.h>
 #include <OgrePass.h>
 #include <OgreSceneNode.h>
+#include <OgreImage.h>
 
 namespace
 {
@@ -59,8 +60,11 @@ const size_t Ground::REGIONS_NUMBER = 10;
 
 
 //-------------------------------------------------------
-Ogre::Material* Ground::CreateGroundMaterialTextured(const std::string & name, const Ogre::Texture* texture)
+Ogre::Material* Ground::CreateGroundMaterialTextured(const std::string & name, const Ogre::Image* texture)
 {
+    Ogre::TexturePtr heightMapTexture = Ogre::TextureManager::getSingleton().loadImage("Texture/Terrain",
+        Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, *texture);
+
     Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().create(name, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
     {
         Ogre::Technique* techniqueGL = material->getTechnique(0);
@@ -79,7 +83,7 @@ Ogre::Material* Ground::CreateGroundMaterialTextured(const std::string & name, c
                 Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, "glsl", Ogre::GPT_FRAGMENT_PROGRAM);
             fprogram->setSource(Shader_GL_Simple_F);
 
-            auto unit0 = pass->createTextureUnitState(texture->getName());
+            auto unit0 = pass->createTextureUnitState(heightMapTexture->getName());
             unit0->setTextureAddressingMode(Ogre::TextureUnitState::TAM_CLAMP);
             unit0->setTextureFiltering(Ogre::TFO_NONE);
 
@@ -146,14 +150,10 @@ Ground::Ground(const std::string & name, Ogre::SceneManager* sceneManager):
 //-------------------------------------------------------
 Ground::~Ground()
 {
-    if (nullptr != mTexture.get())
-    {
-        Ogre::TextureManager::getSingleton().remove(mTexture->getName());
-        mTexture.setNull();
-    }
+    mImage.reset();
 }
 //-------------------------------------------------------
-Ogre::MeshPtr Ground::CreateRegion(size_t id, const std::string & material, Ogre::PixelBox& pixels, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps, const Ogre::Vector2 & texOffset)
+Ogre::MeshPtr Ground::CreateRegion(size_t id, const std::string & material, const Ogre::Box & roi, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps, const Ogre::Vector2 & texOffset)
 {
     assert(mSceneManager != nullptr);
 
@@ -163,28 +163,28 @@ Ogre::MeshPtr Ground::CreateRegion(size_t id, const std::string & material, Ogre
         size_t lastIdx = 0;
         for (size_t y = 0; y < REGION_SIZE; ++y)
         {
-            size_t texY = static_cast<size_t>(static_cast<float>(y) / REGION_SIZE * (pixels.getHeight() - 1));
-            size_t texYn = static_cast<size_t>(static_cast<float>(y + 1) / REGION_SIZE * (pixels.getHeight() - 1));
+            size_t texY = static_cast<size_t>(static_cast<float>(y) / REGION_SIZE * (roi.getHeight() - 1));
+            size_t texYn = static_cast<size_t>(static_cast<float>(y + 1) / REGION_SIZE * (roi.getHeight() - 1));
 
             //Flip texture vertically
-            texY  = pixels.getHeight() - 1 - texY;
-            texYn = pixels.getHeight() - 1 - texYn;
+            texY  = roi.getHeight() - 1 - texY;
+            texYn = roi.getHeight() - 1 - texYn;
 
-            float texCrdT = texOffset[1] + static_cast<float>(texY) / (mTexture->getHeight() - 1);
-            float texCrdTn = texOffset[1] + static_cast<float>(texYn) / (mTexture->getHeight() - 1);
+            float texCrdT = texOffset[1] + static_cast<float>(texY) / (mImage->getHeight() - 1);
+            float texCrdTn = texOffset[1] + static_cast<float>(texYn) / (mImage->getHeight() - 1);
 
             for (size_t x = 0; x < REGION_SIZE; ++x)
             {
-                size_t texX = static_cast<size_t>(static_cast<float>(x) / REGION_SIZE * (pixels.getWidth() - 1));
-                size_t texXn = static_cast<size_t>(static_cast<float>(x + 1) / REGION_SIZE * (pixels.getWidth() - 1));
+                size_t texX = static_cast<size_t>(static_cast<float>(x) / REGION_SIZE * (roi.getWidth() - 1));
+                size_t texXn = static_cast<size_t>(static_cast<float>(x + 1) / REGION_SIZE * (roi.getWidth() - 1));
 
-                float texCrdS = texOffset[0] + static_cast<float>(texX) / (mTexture->getWidth() - 1);
-                float texCrdSn = texOffset[0] + static_cast<float>(texXn) / (mTexture->getWidth() - 1);
+                float texCrdS = texOffset[0] + static_cast<float>(texX) / (mImage->getWidth() - 1);
+                float texCrdSn = texOffset[0] + static_cast<float>(texXn) / (mImage->getWidth() - 1);
 
-                float h00 = pixels.getColourAt(texX, texY, 0)[0];
-                float h10 = pixels.getColourAt(texXn, texY, 0)[0];
-                float h01 = pixels.getColourAt(texX, texYn, 0)[0];
-                float h11 = pixels.getColourAt(texXn, texYn, 0)[0];
+                float h00 = mImage->getColourAt(roi.left + texX,  roi.top + texY, 0)[0];
+                float h10 = mImage->getColourAt(roi.left + texXn, roi.top + texY, 0)[0];
+                float h01 = mImage->getColourAt(roi.left + texX,  roi.top + texYn, 0)[0];
+                float h11 = mImage->getColourAt(roi.left + texXn, roi.top + texYn, 0)[0];
 
                 object->position(x * steps[0] + offset[0], y * steps[1] + offset[1], h00 * steps[2]);
                 object->textureCoord(texCrdS, texCrdT);
@@ -212,28 +212,16 @@ Ogre::MeshPtr Ground::CreateRegion(size_t id, const std::string & material, Ogre
     return object->convertToMesh("Mesh/" + CLASS_NAME  + "/" + mName + "/" + std::to_string(id));
 }
 //-------------------------------------------------------
-void Ground::LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* parentNode)
+void Ground::LoadFromHeightMap(std::shared_ptr<Ogre::Image> hmap, Ogre::SceneNode* parentNode)
 {
-    mTexture = Ogre::TextureManager::getSingleton().createManual(
-        "Texture/" + CLASS_NAME + "/" + mName,
-        Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
-        Ogre::TEX_TYPE_2D, hmap->getWidth(), hmap->getHeight(),
-        0, Ogre::PF_L8);
-    const_cast<Ogre::Texture*>(hmap)->copyToTexture(mTexture);
-    Ogre::Box box = Ogre::Box(0, 0, mTexture->getWidth(), mTexture->getHeight());
+    mImage = hmap;
+    Ogre::Box box = Ogre::Box(0, 0, mImage->getWidth(), mImage->getHeight());
 
-    auto buffer = mTexture->getBuffer();
-    //Ogre::PixelBox data = buffer->lock(box, Ogre::HardwareBuffer::HBL_READ_ONLY);
-    
     mRootNode = parentNode->createChildSceneNode();
     
-
-    //Ogre::ManualObject *man = mSceneManager->createManualObject();
-    //mObject = mSceneManager->createManualObject();
-
     mGlobalBoundingBox.setNull();
 
-    Ogre::Material* groundMaterial = CreateGroundMaterialTextured("Material/" + CLASS_NAME + "/Textured", mTexture.get());
+    Ogre::Material* groundMaterial = CreateGroundMaterialTextured("Material/" + CLASS_NAME + "/Textured", mImage.get());
     
     static const float VERTEX_STEP = 1.0f;
     static const float HEIGHT_STEP = 8.0f;
@@ -241,10 +229,8 @@ void Ground::LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* paren
     float offsetX = GROUND_SIZE * VERTEX_STEP / 2.0f;
     float offsetY = GROUND_SIZE * VERTEX_STEP / 2.0f;
 
-    //CreateRegion(data, Ogre::Vector3(-offsetX, -offsetY, 0.0f), Ogre::Vector3(VERTEX_STEP, VERTEX_STEP, HEIGHT_STEP));
-
-    size_t width  = mTexture->getWidth();
-    size_t height = mTexture->getHeight();
+    size_t width  = mImage->getWidth();
+    size_t height = mImage->getHeight();
 
     float texStep = 1.0f / REGIONS_NUMBER;
 
@@ -256,15 +242,12 @@ void Ground::LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* paren
         for (size_t x = 0; x < REGIONS_NUMBER; ++x)
         {
             size_t left = x * texRegionWidth;
-            //Ogre::Box roi = Ogre::Box(left, top, std::min(left + texRegionWidth, width), std::min(top + texRegionHeight, height));
             Ogre::Box roi = Ogre::Box(left, height - std::min(top + texRegionHeight + 1, height), std::min(left + texRegionWidth + 1, width), height - top);
                 
-            auto pixels = buffer->lock(roi, Ogre::HardwareBuffer::HBL_READ_ONLY);
-            Ogre::MeshPtr mesh = CreateRegion(y * REGIONS_NUMBER + x, groundMaterial->getName(), pixels,
+            Ogre::MeshPtr mesh = CreateRegion(y * REGIONS_NUMBER + x, groundMaterial->getName(), roi,
                 Ogre::Vector3(x * VERTEX_STEP * REGION_SIZE - offsetX, y * VERTEX_STEP * REGION_SIZE - offsetY, 0.0f),
                 Ogre::Vector3(VERTEX_STEP, VERTEX_STEP, HEIGHT_STEP),
                 Ogre::Vector2(x * texStep, 1.0f - (y + 1) * texStep));
-            buffer->unlock();
 
             Ogre::Entity* entity = mSceneManager->createEntity(mesh);
             
@@ -277,28 +260,17 @@ void Ground::LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* paren
             mEntities.push_back(entity);
         }
     }
-   
-
-//     Ogre::MeshPtr mesh = mObject->convertToMesh("Mesh/Ground/" + mName);
-//     mEntity = mSceneManager->createEntity(mesh);
 }
 //-------------------------------------------------------
 float Ground::GetHeightAt(float s, float t)
 {
     OgreAssert(0.0f <= s && s <= 1.0f && 0.0f <= t && t <= 1.0f, "S and T should be from [0, 1]");
-    OgreAssert(nullptr != mTexture.get(), "Ground[GetHeightAt]: Not initialized");
+    OgreAssert(nullptr != mImage.get(), "Ground[GetHeightAt]: Not initialized");
 
-    size_t x = static_cast<size_t>(s * (mTexture->getWidth() - 1));
-    size_t y = static_cast<size_t>(t * (mTexture->getHeight() - 1));
+    size_t x = static_cast<size_t>(s * (mImage->getWidth() - 1));
+    size_t y = static_cast<size_t>(t * (mImage->getHeight() - 1));
 
-    Ogre::Box box = Ogre::Box(0, 0, mTexture->getWidth(), mTexture->getHeight());
-    auto buffer = mTexture->getBuffer();
-
-    auto pixels = buffer->lock(box, Ogre::HardwareBuffer::HBL_READ_ONLY);
-    float height = pixels.getColourAt(x, y, 0)[0];
-    buffer->unlock();
-
-    return height;
+    return mImage->getColourAt(x, y, 0)[0];
 }
 //-------------------------------------------------------
 std::pair<bool, Ogre::Vector3> Ground::GetIntersectionLocalSpace(const Ogre::Ray & ray) const

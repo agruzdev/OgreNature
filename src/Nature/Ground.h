@@ -14,7 +14,6 @@
 
 #include <OgrePrerequisites.h>
 #include <OgreCommon.h>
-#include <OgreTexture.h>
 #include <OgreMesh.h>
 #include <OgreVector3.h>
 #include <OgreRay.h>
@@ -24,9 +23,9 @@ namespace Ogre
 {
     class SceneManager;
     class Entity;
-    class Texture;
     class ManualObject;
     class SceneNode;
+    class Image;
 }
 
 class Ground
@@ -38,7 +37,7 @@ class Ground
     static const size_t REGIONS_NUMBER;
     //-------------------------------------------------------
 
-    static Ogre::Material* CreateGroundMaterialTextured(const std::string & name, const Ogre::Texture* texture);
+    static Ogre::Material* CreateGroundMaterialTextured(const std::string & name, const Ogre::Image* texture);
 
     static std::pair<bool, float> GetVertexIntersection(const Ogre::Ray & ray, const Ogre::SubMesh* subMesh);
     //-------------------------------------------------------
@@ -46,7 +45,7 @@ class Ground
     std::string mName;
     Ogre::SceneManager* mSceneManager;
     //Ogre::ManualObject* mObject;
-    Ogre::TexturePtr mTexture;
+    std::shared_ptr<Ogre::Image> mImage;
 
     std::vector<Ogre::Entity*> mEntities;
     Ogre::SceneNode* mRootNode;
@@ -62,7 +61,7 @@ class Ground
      *  @param offset - top left vertex position
      *  @param steps - horizontal and vertical steps between vertex
      */
-    Ogre::MeshPtr CreateRegion(size_t id, const std::string & material, Ogre::PixelBox& pixels, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps, const Ogre::Vector2 & texOffset);
+    Ogre::MeshPtr CreateRegion(size_t id, const std::string & material, const Ogre::Box & roi, const Ogre::Vector3 & offset, const Ogre::Vector3 & steps, const Ogre::Vector2 & texOffset);
 
 
     Ground(const Ground&) = delete;
@@ -72,7 +71,7 @@ public:
     Ground(const std::string & name, Ogre::SceneManager* sceneManager);
     ~Ground();
 
-    void LoadFromHeightMap(const Ogre::Texture* hmap, Ogre::SceneNode* parentNode);
+    void LoadFromHeightMap(std::shared_ptr<Ogre::Image> hmap, Ogre::SceneNode* parentNode);
 
     //Ogre::Entity* GetEntity()
     //{
